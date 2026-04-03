@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitSOP QA 현황</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=SUIT:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<style>
+  :root {
+    --bg: #09111f;
+    --bg-strong: #07101b;
+    --panel: rgba(11, 25, 44, 0.88);
+    --panel-soft: rgba(16, 32, 55, 0.8);
+    --line: rgba(143, 179, 255, 0.16);
+    --line-strong: rgba(143, 179, 255, 0.28);
+    --text: #eef4ff;
+    --muted: #8fa6c8;
+    --blue: #60a5fa;
+    --cyan: #22d3ee;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --violet: #a78bfa;
+    --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "SUIT", sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 28%),
+      radial-gradient(circle at top right, rgba(96, 165, 250, 0.14), transparent 24%),
+      linear-gradient(180deg, #09111f 0%, #081018 52%, #060c14 100%);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.45), transparent 90%);
+  }
+
+  .page {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 32px 28px 40px;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+
+  .hero-card,
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+  }
+
+  .hero-card {
+    padding: 28px 28px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-card::after {
+    content: "";
+    position: absolute;
+    inset: auto -120px -120px auto;
+    width: 280px;
+    height: 280px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.12), transparent 65%);
+  }
+
+  .eyebrow,
+  .section-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(96, 165, 250, 0.26);
+    background: rgba(96, 165, 250, 0.1);
+    color: #b8d3ff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .hero h1 {
+    margin: 16px 0 10px;
+    font-size: clamp(32px, 4vw, 50px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .hero h1 span {
+    color: var(--cyan);
+  }
+
+  .hero h1 .mono-title {
+    font-family: "JetBrains Mono", monospace;
+    letter-spacing: -0.06em;
+  }
+
+  .hero-copy {
+    max-width: 780px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .hero-meta {
+    margin-top: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.03);
+    font-size: 13px;
+    color: #c7d7f1;
+  }
+
+  .mono {
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  .live-card {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .live-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .live-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(52, 211, 153, 0.12);
+    color: #8af0c4;
+    border: 1px solid rgba(52, 211, 153, 0.24);
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 6px rgba(255,255,255,0.06);
+  }
+
+  .refresh-box {
+    display: grid;
+    gap: 10px;
+  }
+
+  .live-value {
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+  }
+
+  .live-caption {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .mini-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .mini-stat {
+    padding: 14px;
+    border-radius: 18px;
+    background: var(--panel-soft);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .mini-stat .label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .mini-stat .value {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+
+  .section {
+    margin-top: 24px;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+  }
+
+  .section-sub {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+    margin-top: 6px;
+  }
+
+  .section-sub.extra {
+    margin-top: 8px;
+    color: #c8d7ef;
+  }
+
+  .section-sub.extra strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .sub-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .kpi {
+    padding: 20px;
+    border-radius: 22px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--accent, var(--blue));
+  }
+
+  .kpi-label {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .kpi-value {
+    margin-top: 16px;
+    font-size: clamp(30px, 2.8vw, 42px);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    font-weight: 800;
+  }
+
+  .kpi-desc {
+    margin-top: 10px;
+    color: #cad8ef;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .kpi.compact {
+    padding: 18px;
+  }
+
+  .kpi.compact .kpi-label {
+    font-size: 11px;
+  }
+
+  .kpi-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .kpi-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(96, 165, 250, 0.22);
+    background: rgba(96, 165, 250, 0.1);
+    color: #b9d3ff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .kpi.compact .kpi-value {
+    margin-top: 12px;
+    font-size: clamp(24px, 2vw, 32px);
+  }
+
+  .kpi.compact .kpi-desc {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 14px;
+  }
+
+  .panel {
+    padding: 20px;
+  }
+
+  .stack-wrap {
+    margin-top: 18px;
+  }
+
+  .stack-bar {
+    display: flex;
+    height: 20px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .stack-seg {
+    min-width: 0;
+  }
+
+  .legend {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 14px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    font-size: 13px;
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex: none;
+  }
+
+  .legend-item strong {
+    margin-left: auto;
+    font-size: 14px;
+  }
+
+  .metric-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .metric-row {
+    display: grid;
+    grid-template-columns: 112px 1fr 72px;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .metric-row .name {
+    color: #dce8fb;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .metric-bar {
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.07);
+    overflow: hidden;
+  }
+
+  .metric-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--blue), var(--cyan));
+  }
+
+  .metric-row .pct {
+    text-align: right;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .table-wrap {
+    overflow: auto;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 680px;
+  }
+
+  th,
+  td {
+    padding: 13px 14px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    vertical-align: top;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background: rgba(8, 16, 30, 0.95);
+    color: #bed0ef;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    z-index: 1;
+  }
+
+  td {
+    font-size: 13px;
+    color: #e7efff;
+  }
+
+  tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .control {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 11px 13px;
+    font: inherit;
+  }
+
+  .control:focus {
+    outline: 2px solid rgba(34, 211, 238, 0.32);
+    outline-offset: 1px;
+  }
+
+  input.control {
+    min-width: 240px;
+    flex: 1 1 280px;
+  }
+
+  select.control {
+    min-width: 170px;
+  }
+
+  .issues {
+    display: grid;
+    gap: 10px;
+  }
+
+  .issue-card {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(248, 113, 113, 0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(248, 113, 113, 0.16);
+  }
+
+  .issue-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .issue-id {
+    color: #ffb2b2;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+  }
+
+  .issue-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  .issue-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .empty,
+  .loading,
+  .error {
+    padding: 24px;
+    border-radius: 18px;
+    text-align: center;
+    color: var(--muted);
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed rgba(255,255,255,0.12);
+  }
+
+  .error {
+    color: #ffbdbd;
+    border-color: rgba(248, 113, 113, 0.2);
+    background: rgba(248, 113, 113, 0.06);
+  }
+
+  .footer {
+    margin-top: 20px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  @media (max-width: 1180px) {
+    .hero,
+    .two-col {
+      grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 760px) {
+    .page {
+      padding: 18px 14px 28px;
+    }
+
+    .hero-card,
+    .panel,
+    .kpi,
+    .live-card {
+      border-radius: 20px;
+    }
+
+    .kpi-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .mini-stats {
+      grid-template-columns: 1fr;
+    }
+
+    .legend {
+      grid-template-columns: 1fr;
+    }
+
+    .metric-row {
+      grid-template-columns: 88px 1fr 60px;
+      gap: 10px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="hero-card">
+        <div class="eyebrow">Live Sync Dashboard</div>
+        <h1><span class="mono-title">GitSOP QA</span> 현황</h1>
+        <div class="hero-copy">
+          구글 스프레드시트 <span class="mono">QA_TC</span> 탭을 직접 읽어와 현재 테스트 상태, 검수 진행률, 우선순위별 리스크, 화면별 병목 구간을 한 화면에서 확인할 수 있도록 구성한 라이브 대시보드입니다.
+        </div>
+        <div class="hero-meta">
+          <div class="meta-pill">원본: Google Sheets</div>
+          <div class="meta-pill">자동 새로고침: 60초</div>
+          <div class="meta-pill">기준 탭: QA_TC</div>
+        </div>
+      </div>
+
+      <div class="hero-card live-card">
+        <div class="live-top">
+          <div>
+            <div class="live-status"><span class="dot"></span><span id="liveStatusLabel">연결 준비중</span></div>
+          </div>
+          <div class="section-kicker">Real Time</div>
+        </div>
+
+        <div class="refresh-box">
+          <div>
+            <div class="live-caption">최근 동기화 시각</div>
+            <div class="live-value mono" id="lastSyncAt">--:--:--</div>
+          </div>
+          <div class="live-caption" id="syncMessage">구글시트 응답을 기다리는 중입니다.</div>
+        </div>
+
+        <div class="mini-stats">
+          <div class="mini-stat">
+            <div class="label">데이터 행 수</div>
+            <div class="value mono" id="rowCount">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">다음 새로고침</div>
+            <div class="value mono" id="refreshCountdown">60s</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">시트 응답</div>
+            <div class="value mono" id="responseState">WAIT</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Overview</div>
+          <h2 class="section-title">전체 실행 현황</h2>
+          <div class="section-sub">상태 컬럼과 기획/개발 검수 체크값을 기준으로 실시간 집계합니다.</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="sub-kpi-grid" id="designIssueSummary"></div>
+    </section>
+
+    <section class="section two-col">
+      <div class="panel">
+        <div class="section-kicker">Status Mix</div>
+        <h2 class="section-title">상태 분포</h2>
+        <div class="section-sub">상태값 표기를 정규화해 하나의 분포로 묶어 보여줍니다.</div>
+        <div class="stack-wrap">
+          <div class="stack-bar" id="statusStack"></div>
+          <div class="legend" id="statusLegend"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-kicker">Review Progress</div>
+        <h2 class="section-title">검수 진행률</h2>
+        <div class="section-sub">기획 검수와 개발 검수 체크박스 기준 달성률입니다.</div>
+        <div class="metric-list" id="reviewMetrics"></div>
+      </div>
+    </section>
+
+    <section class="section two-col">
+      <div class="panel">
+        <div class="section-kicker">Priority Risk</div>
+        <h2 class="section-title">중요도별 리스크</h2>
+        <div class="section-sub">높음/중간/낮음 기준 전체 건수와 수정 요청 비중을 함께 보여줍니다.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>중요도</th>
+                <th>전체</th>
+                <th>수정 요청</th>
+                <th>수정 비율</th>
+                <th>기획 PASS</th>
+              </tr>
+            </thead>
+            <tbody id="priorityTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-kicker">Risk Focus</div>
+        <h2 class="section-title">수정 요청 우선 확인 대상</h2>
+        <div class="section-sub">수정 요청 중 중요도와 화면 기준으로 우선 확인이 필요한 항목입니다.</div>
+        <div class="issues" id="issueList"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Module View</div>
+          <h2 class="section-title">화면별 진행 현황</h2>
+          <div class="section-sub">화면별 총 TC 수, 수정 요청, 기획 PASS, 진행률을 한 번에 비교합니다.</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>화면</th>
+                <th>전체</th>
+                <th>진행중/작업중</th>
+                <th>수정 요청</th>
+                <th>기획 PASS</th>
+                <th>진행률</th>
+              </tr>
+            </thead>
+            <tbody id="screenTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">TC Detail</div>
+          <h2 class="section-title">TC 상세 조회</h2>
+          <div class="section-sub">상태와 검색어로 필터링해 실시간으로 항목을 확인할 수 있습니다.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <input id="searchInput" class="control" type="search" placeholder="TC-ID, 테스트 시나리오명, 화면, 기능 검색">
+          <select id="statusFilter" class="control">
+            <option value="">전체 상태</option>
+          </select>
+          <select id="screenFilter" class="control">
+            <option value="">전체 화면</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>TC-ID</th>
+                <th>테스트 시나리오명</th>
+                <th>화면</th>
+                <th>중요도</th>
+                <th>상태</th>
+                <th>기획 검수</th>
+                <th>개발 검수</th>
+              </tr>
+            </thead>
+            <tbody id="detailTableBody">
+              <tr><td colspan="7"><div class="loading">구글시트 데이터를 불러오는 중입니다.</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      Google Sheets 원본을 기반으로 브라우저에서 직접 집계합니다. 시트 구조가 바뀌면 컬럼명 기준 매핑도 함께 조정해야 합니다.
+    </div>
+  </div>
+
+<script>
+  const SHEET_ID = "1BDM-I4pMjAvY1D62vdLvf_z6q3WgkcfooHDBAqPNNzk";
+  const SHEET_NAME = "QA_TC";
+  const DESIGN_SHEET_NAME = "디자인검수-Figma코멘트";
+  const REFRESH_MS = 60000;
+  const QUERY_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}`;
+  const DESIGN_QUERY_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DESIGN_SHEET_NAME)}`;
+
+  const COLORS = {
+    "수정 요청": "#f87171",
+    "테스트 진행 중": "#22d3ee",
+    "검수 요청(개발자 전용)": "#a78bfa",
+    "작업 중(개발자 전용)": "#fbbf24",
+    "기타": "#64748b"
+  };
+
+  const state = {
+    rows: [],
+    designMetrics: null,
+    lastUpdated: null,
+    countdown: Math.floor(REFRESH_MS / 1000)
+  };
+
+  google.charts.load("current");
+  google.charts.setOnLoadCallback(() => {
+    bindFilters();
+    fetchSheetData();
+    setInterval(fetchSheetData, REFRESH_MS);
+    setInterval(updateCountdown, 1000);
+  });
+
+  function fetchSheetData() {
+    setLiveState("SYNC", "동기화 중", "구글시트에서 최신 데이터를 불러오는 중입니다.");
+
+    const query = new google.visualization.Query(QUERY_URL);
+    query.send(async (response) => {
+      if (response.isError()) {
+        renderError(response.getMessage() || "Google Sheets 응답 오류");
+        return;
+      }
+
+      try {
+        const rows = dataTableToRows(response.getDataTable()).filter((row) => row["TC-ID"]);
+        const designMetrics = await fetchDesignMetrics();
+        state.rows = rows;
+        state.designMetrics = designMetrics;
+        state.lastUpdated = new Date();
+        state.countdown = Math.floor(REFRESH_MS / 1000);
+        renderDashboard(rows);
+        setLiveState("OK", "연결 정상", `마지막 동기화 완료. ${rows.length}건 기준으로 집계했습니다.`);
+      } catch (error) {
+        renderError(error.message || "데이터 파싱 실패");
+      }
+    });
+  }
+
+  function dataTableToRows(dataTable) {
+    const cols = Array.from({ length: dataTable.getNumberOfColumns() }, (_, i) => dataTable.getColumnLabel(i) || dataTable.getColumnId(i));
+    return Array.from({ length: dataTable.getNumberOfRows() }, (_, r) => {
+      const row = {};
+      cols.forEach((col, c) => {
+        row[col] = dataTable.getValue(r, c);
+      });
+      return row;
+    });
+  }
+
+  async function fetchDesignMetrics() {
+    const response = await fetch(DESIGN_QUERY_URL);
+    const text = await response.text();
+    const match = text.match(/setResponse\((.*)\);?$/s);
+    if (!match) {
+      throw new Error("디자인검수 시트 파싱 실패");
+    }
+
+    const payload = JSON.parse(match[1]);
+    const cols = payload.table.cols.map((col) => col.label || col.id);
+    const rows = payload.table.rows
+      .map((row) => Object.fromEntries(cols.map((col, index) => [col, row.c[index]?.v ?? null])))
+      .filter((row) => Object.values(row).some((value) => value !== null && String(value).trim() !== ""));
+
+    const statusKey = cols.includes("상태") ? "상태" : "G";
+    const dataRows = rows.filter((row) => {
+      const status = String(row[statusKey] || "").trim();
+      return status && status !== "상태";
+    });
+
+    const majorRows = dataRows.filter((row) => {
+      const blob = cols
+        .filter((col) => col !== statusKey)
+        .map((col) => String(row[col] || ""))
+        .join("\n")
+        .toLowerCase();
+      return blob.includes("major") || blob.includes("메이저");
+    });
+
+    const complete = dataRows.filter((row) => String(row[statusKey] || "").trim() === "Yes").length;
+    const majorComplete = majorRows.filter((row) => String(row[statusKey] || "").trim() === "Yes").length;
+
+    return {
+      total: dataRows.length,
+      major: majorRows.length,
+      complete,
+      majorComplete
+    };
+  }
+
+  function normalizeStatus(status) {
+    const raw = String(status || "").replace(/\s+/g, " ").trim();
+    const compact = raw.replace(/\s+/g, "");
+
+    if (!raw) return "기타";
+    if (raw.includes("수정 요청") || compact.includes("수정요청")) return "수정 요청";
+    if (raw.includes("검수 요청") || compact.includes("검수요청")) return "검수 요청(개발자 전용)";
+    if (raw.includes("작업 중") || compact.includes("작업중")) return "작업 중(개발자 전용)";
+    if (raw.includes("테스트") || compact.includes("테스트") || compact.includes("테스")) return "테스트 진행 중";
+    return "기타";
+  }
+
+  function normalizePriority(priority) {
+    const value = String(priority || "").trim();
+    if (value.includes("높")) return "높음";
+    if (value.includes("중")) return "중간";
+    if (value.includes("낮")) return "낮음";
+    return "기타";
+  }
+
+  function isTrue(value) {
+    return value === true || value === "TRUE" || value === "Y" || value === 1;
+  }
+
+  function toPct(value, total) {
+    if (!total) return "0.0%";
+    return `${((value / total) * 100).toFixed(1)}%`;
+  }
+
+  function renderDashboard(rows) {
+    const mapped = rows.map((row) => ({
+      ...row,
+      normalizedStatus: normalizeStatus(row["상태"]),
+      normalizedPriority: normalizePriority(row["중요도"]),
+      planningPass: isTrue(row["기획 검수"]),
+      devPass: isTrue(row["개발 검수"])
+    }));
+
+    renderHeaderStats(mapped);
+    renderKpis(mapped);
+    renderStatusMix(mapped);
+    renderReviewProgress(mapped);
+    renderPriorityTable(mapped);
+    renderIssues(mapped);
+    renderScreenTable(mapped);
+    populateFilterOptions(mapped);
+    renderDetailTable(mapped);
+    renderDesignSummary();
+  }
+
+  function renderDesignSummary() {
+    const metrics = state.designMetrics;
+    const target = document.getElementById("designIssueSummary");
+    if (!metrics) {
+      target.innerHTML = "";
+      return;
+    }
+
+    const completePct = toPct(metrics.complete, metrics.total);
+    const majorCompletePct = toPct(metrics.majorComplete, metrics.major || 1);
+    const cards = [
+      {
+        label: "전체 디자인 이슈",
+        value: metrics.total,
+        desc: "Figma 코멘트 시트 기준 전체 디자인 이슈",
+        accent: "#60a5fa"
+      },
+      {
+        label: "메이저 이슈",
+        value: metrics.major,
+        desc: "Major 표기 기준 핵심 검수 항목",
+        accent: "#f59e0b"
+      },
+      {
+        label: "완료",
+        value: metrics.complete,
+        desc: `${completePct} · 메이저 ${metrics.majorComplete}건 완료 (${majorCompletePct})`,
+        accent: "#34d399"
+      }
+    ];
+
+    target.innerHTML = cards.map((card) => `
+      <article class="kpi compact" style="--accent:${card.accent}">
+        <div class="kpi-meta">
+          <span class="kpi-chip">디자인</span>
+          <div class="kpi-label">${escapeHtml(card.label)}</div>
+        </div>
+        <div class="kpi-value mono">${card.value}</div>
+        <div class="kpi-desc">${escapeHtml(card.desc)}</div>
+      </article>
+    `).join("");
+  }
+
+  function renderHeaderStats(rows) {
+    const fixCount = rows.filter((row) => row.normalizedStatus === "수정 요청").length;
+    const planningPassCount = rows.filter((row) => row.planningPass).length;
+    const devPassCount = rows.filter((row) => row.devPass).length;
+
+    document.getElementById("rowCount").textContent = String(rows.length);
+    document.getElementById("responseState").textContent = "OK";
+    document.getElementById("lastSyncAt").textContent = formatTime(state.lastUpdated);
+
+    const info = `수정 요청 ${fixCount}건 · 기획 PASS ${planningPassCount}건 · 개발 PASS ${devPassCount}건`;
+    document.getElementById("syncMessage").textContent = info;
+  }
+
+  function renderKpis(rows) {
+    const total = rows.length;
+    const fixCount = rows.filter((row) => row.normalizedStatus === "수정 요청").length;
+    const testCount = rows.filter((row) => row.normalizedStatus === "테스트 진행 중").length;
+    const devReviewCount = rows.filter((row) => row.normalizedStatus === "검수 요청(개발자 전용)").length;
+    const planningPassCount = rows.filter((row) => row.planningPass).length;
+    const devPassCount = rows.filter((row) => row.devPass).length;
+
+    const kpis = [
+      { label: "전체 TC", value: total, desc: "현재 QA_TC 탭 기준 전체 테스트 케이스", accent: "#60a5fa" },
+      { label: "테스트 진행 중", value: testCount, desc: `${toPct(testCount, total)} · 현재 테스트 수행 단계`, accent: "#22d3ee" },
+      { label: "기획 검수 PASS", value: planningPassCount, desc: `${toPct(planningPassCount, total)} · 기획 기준 확인 완료`, accent: "#34d399" },
+      { label: "개발 검수 PASS", value: devPassCount || devReviewCount, desc: devPassCount ? `${toPct(devPassCount, total)} · 개발 검수 완료` : `${toPct(devReviewCount, total)} · 개발자 검수 요청 상태`, accent: "#a78bfa" }
+    ];
+
+    document.getElementById("kpiGrid").innerHTML = kpis.map((kpi) => `
+      <article class="kpi" style="--accent:${kpi.accent}">
+        <div class="kpi-label">${escapeHtml(kpi.label)}</div>
+        <div class="kpi-value mono">${kpi.value}</div>
+        <div class="kpi-desc">${escapeHtml(kpi.desc)}</div>
+      </article>
+    `).join("");
+  }
+
+  function renderStatusMix(rows) {
+    const counts = rows.reduce((acc, row) => {
+      acc[row.normalizedStatus] = (acc[row.normalizedStatus] || 0) + 1;
+      return acc;
+    }, {});
+
+    const ordered = ["테스트 진행 중", "수정 요청", "검수 요청(개발자 전용)", "작업 중(개발자 전용)", "기타"]
+      .filter((key) => counts[key]);
+
+    const total = rows.length || 1;
+    document.getElementById("statusStack").innerHTML = ordered.map((key) => `
+      <div class="stack-seg" style="width:${(counts[key] / total) * 100}%; background:${COLORS[key] || COLORS["기타"]}"></div>
+    `).join("");
+
+    document.getElementById("statusLegend").innerHTML = ordered.map((key) => `
+      <div class="legend-item">
+        <span class="legend-swatch" style="background:${COLORS[key] || COLORS["기타"]}"></span>
+        <span>${escapeHtml(key)}</span>
+        <strong class="mono">${counts[key]} / ${toPct(counts[key], total)}</strong>
+      </div>
+    `).join("");
+  }
+
+  function renderReviewProgress(rows) {
+    const total = rows.length;
+    const planningPassCount = rows.filter((row) => row.planningPass).length;
+    const devPassCount = rows.filter((row) => row.devPass).length;
+    const fixCount = rows.filter((row) => row.normalizedStatus === "수정 요청").length;
+
+    const metrics = [
+      { name: "기획 검수", value: planningPassCount, total, color: "linear-gradient(90deg, #34d399, #5eead4)" },
+      { name: "개발 검수", value: devPassCount, total, color: "linear-gradient(90deg, #a78bfa, #60a5fa)" },
+      { name: "수정 요청", value: fixCount, total, color: "linear-gradient(90deg, #f59e0b, #f87171)" }
+    ];
+
+    document.getElementById("reviewMetrics").innerHTML = metrics.map((metric) => `
+      <div class="metric-row">
+        <div class="name">${escapeHtml(metric.name)}</div>
+        <div class="metric-bar">
+          <div class="metric-fill" style="width:${total ? (metric.value / total) * 100 : 0}%; background:${metric.color}"></div>
+        </div>
+        <div class="pct mono">${metric.value}</div>
+      </div>
+    `).join("");
+  }
+
+  function renderPriorityTable(rows) {
+    const order = ["높음", "중간", "낮음", "기타"];
+    const tbody = document.getElementById("priorityTableBody");
+
+    tbody.innerHTML = order.map((priority) => {
+      const items = rows.filter((row) => row.normalizedPriority === priority);
+      if (!items.length) return "";
+      const fixCount = items.filter((row) => row.normalizedStatus === "수정 요청").length;
+      const passCount = items.filter((row) => row.planningPass).length;
+      return `
+        <tr>
+          <td>${renderPriorityPill(priority)}</td>
+          <td class="mono">${items.length}</td>
+          <td class="mono">${fixCount}</td>
+          <td class="mono">${toPct(fixCount, items.length)}</td>
+          <td class="mono">${passCount}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function renderIssues(rows) {
+    const issues = rows
+      .filter((row) => row.normalizedStatus === "수정 요청")
+      .sort((a, b) => priorityScore(b.normalizedPriority) - priorityScore(a.normalizedPriority) || String(a["TC-ID"]).localeCompare(String(b["TC-ID"])))
+      .slice(0, 8);
+
+    const container = document.getElementById("issueList");
+
+    if (!issues.length) {
+      container.innerHTML = '<div class="empty">현재 수정 요청 항목이 없습니다.</div>';
+      return;
+    }
+
+    container.innerHTML = issues.map((issue) => `
+      <article class="issue-card">
+        <div class="issue-top">
+          <div class="issue-id mono">${escapeHtml(issue["TC-ID"] || "-")}</div>
+          <div>${renderPriorityPill(issue.normalizedPriority)}</div>
+        </div>
+        <div class="issue-title">${escapeHtml(issue["테스트 시나리오명"] || "-")}</div>
+        <div class="issue-meta">
+          <span>${renderTag(issue["화면"] || "화면 미입력")}</span>
+          <span>${renderTag(issue["기능"] || "기능 미입력")}</span>
+          <span>${renderTag(issue["상태"] || "상태 미입력")}</span>
+        </div>
+      </article>
+    `).join("");
+  }
+
+  function renderScreenTable(rows) {
+    const grouped = new Map();
+
+    rows.forEach((row) => {
+      const key = String(row["화면"] || "화면 미입력").trim() || "화면 미입력";
+      if (!grouped.has(key)) {
+        grouped.set(key, { screen: key, total: 0, inProgress: 0, fix: 0, planningPass: 0 });
+      }
+      const item = grouped.get(key);
+      item.total += 1;
+      if (row.normalizedStatus === "테스트 진행 중" || row.normalizedStatus === "작업 중(개발자 전용)") item.inProgress += 1;
+      if (row.normalizedStatus === "수정 요청") item.fix += 1;
+      if (row.planningPass) item.planningPass += 1;
+    });
+
+    const topScreens = Array.from(grouped.values())
+      .sort((a, b) => b.total - a.total || b.fix - a.fix)
+      .slice(0, 18);
+
+    document.getElementById("screenTableBody").innerHTML = topScreens.map((item) => `
+      <tr>
+        <td>${escapeHtml(item.screen)}</td>
+        <td class="mono">${item.total}</td>
+        <td class="mono">${item.inProgress}</td>
+        <td class="mono">${item.fix}</td>
+        <td class="mono">${item.planningPass}</td>
+        <td>
+          <div class="metric-row" style="grid-template-columns:1fr 54px; gap:10px;">
+            <div class="metric-bar">
+              <div class="metric-fill" style="width:${(item.planningPass / item.total) * 100}%; background:linear-gradient(90deg, #34d399, #22d3ee)"></div>
+            </div>
+            <div class="pct mono">${toPct(item.planningPass, item.total)}</div>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  function bindFilters() {
+    document.getElementById("searchInput").addEventListener("input", () => renderDetailTable(getMappedRows()));
+    document.getElementById("statusFilter").addEventListener("change", () => renderDetailTable(getMappedRows()));
+    document.getElementById("screenFilter").addEventListener("change", () => renderDetailTable(getMappedRows()));
+  }
+
+  function getMappedRows() {
+    return state.rows.map((row) => ({
+      ...row,
+      normalizedStatus: normalizeStatus(row["상태"]),
+      normalizedPriority: normalizePriority(row["중요도"]),
+      planningPass: isTrue(row["기획 검수"]),
+      devPass: isTrue(row["개발 검수"])
+    }));
+  }
+
+  function populateFilterOptions(rows) {
+    syncSelect("statusFilter", [...new Set(rows.map((row) => row.normalizedStatus))].sort(), "전체 상태");
+    syncSelect("screenFilter", [...new Set(rows.map((row) => row["화면"] || "화면 미입력"))].sort((a, b) => String(a).localeCompare(String(b), "ko")), "전체 화면");
+  }
+
+  function syncSelect(id, values, defaultLabel) {
+    const select = document.getElementById(id);
+    const current = select.value;
+    select.innerHTML = `<option value="">${escapeHtml(defaultLabel)}</option>` + values.map((value) => `
+      <option value="${escapeAttr(String(value))}">${escapeHtml(String(value))}</option>
+    `).join("");
+    select.value = values.includes(current) ? current : "";
+  }
+
+  function renderDetailTable(rows) {
+    const q = document.getElementById("searchInput").value.trim().toLowerCase();
+    const statusFilter = document.getElementById("statusFilter").value;
+    const screenFilter = document.getElementById("screenFilter").value;
+
+    const filtered = rows.filter((row) => {
+      const haystack = [
+        row["TC-ID"],
+        row["테스트 시나리오명"],
+        row["화면"],
+        row["기능"]
+      ].join(" ").toLowerCase();
+
+      if (q && !haystack.includes(q)) return false;
+      if (statusFilter && row.normalizedStatus !== statusFilter) return false;
+      if (screenFilter && (row["화면"] || "화면 미입력") !== screenFilter) return false;
+      return true;
+    }).slice(0, 80);
+
+    const tbody = document.getElementById("detailTableBody");
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty">조건에 맞는 TC가 없습니다.</div></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map((row) => `
+      <tr>
+        <td class="mono">${escapeHtml(row["TC-ID"] || "-")}</td>
+        <td>${escapeHtml(row["테스트 시나리오명"] || "-")}</td>
+        <td>${escapeHtml(row["화면"] || "-")}</td>
+        <td>${renderPriorityPill(row.normalizedPriority)}</td>
+        <td>${renderStatusPill(row.normalizedStatus)}</td>
+        <td>${row.planningPass ? renderBooleanPill("PASS", "#34d399") : renderBooleanPill("대기", "#64748b")}</td>
+        <td>${row.devPass ? renderBooleanPill("PASS", "#a78bfa") : renderBooleanPill("대기", "#64748b")}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderStatusPill(status) {
+    const color = COLORS[status] || COLORS["기타"];
+    return renderBooleanPill(status, color);
+  }
+
+  function renderPriorityPill(priority) {
+    const map = {
+      "높음": "#f87171",
+      "중간": "#fbbf24",
+      "낮음": "#34d399",
+      "기타": "#64748b"
+    };
+    return renderBooleanPill(priority, map[priority] || map["기타"]);
+  }
+
+  function renderBooleanPill(label, color) {
+    return `<span class="pill" style="background:${hexToRgba(color, 0.14)}; color:${color}; border:1px solid ${hexToRgba(color, 0.24)};">${escapeHtml(label)}</span>`;
+  }
+
+  function renderTag(text) {
+    return `<span class="pill" style="background:rgba(255,255,255,0.05); color:#c9d8ef; border:1px solid rgba(255,255,255,0.06);">${escapeHtml(text)}</span>`;
+  }
+
+  function priorityScore(priority) {
+    return { "높음": 3, "중간": 2, "낮음": 1, "기타": 0 }[priority] || 0;
+  }
+
+  function renderError(message) {
+    setLiveState("FAIL", "연결 오류", message);
+    document.getElementById("responseState").textContent = "FAIL";
+    document.getElementById("detailTableBody").innerHTML = `<tr><td colspan="7"><div class="error">${escapeHtml(message)}</div></td></tr>`;
+  }
+
+  function setLiveState(code, label, message) {
+    document.getElementById("liveStatusLabel").textContent = label;
+    document.getElementById("syncMessage").textContent = message;
+    document.getElementById("responseState").textContent = code;
+  }
+
+  function updateCountdown() {
+    state.countdown = state.countdown <= 0 ? 0 : state.countdown - 1;
+    document.getElementById("refreshCountdown").textContent = `${state.countdown}s`;
+  }
+
+  function formatTime(date) {
+    if (!date) return "--:--:--";
+    return new Intl.DateTimeFormat("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    }).format(date);
+  }
+
+  function hexToRgba(hex, alpha) {
+    const safe = hex.replace("#", "");
+    const full = safe.length === 3 ? safe.split("").map((c) => c + c).join("") : safe;
+    const value = parseInt(full, 16);
+    const r = (value >> 16) & 255;
+    const g = (value >> 8) & 255;
+    const b = value & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value);
+  }
+</script>
+</body>
+</html>

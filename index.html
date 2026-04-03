@@ -847,6 +847,7 @@
   const COLORS = {
     "수정 요청": "#f87171",
     "테스트 진행 중": "#22d3ee",
+    "완료": "#34d399",
     "검수 요청(개발자 전용)": "#a78bfa",
     "작업 중(개발자 전용)": "#fbbf24",
     "기타": "#64748b"
@@ -948,6 +949,7 @@
     const compact = raw.replace(/\s+/g, "");
 
     if (!raw) return "기타";
+    if (raw.includes("완료") || compact.includes("완료")) return "완료";
     if (raw.includes("수정 요청") || compact.includes("수정요청")) return "수정 요청";
     if (raw.includes("검수 요청") || compact.includes("검수요청")) return "검수 요청(개발자 전용)";
     if (raw.includes("작업 중") || compact.includes("작업중")) return "작업 중(개발자 전용)";
@@ -1079,7 +1081,7 @@
       return acc;
     }, {});
 
-    const ordered = ["테스트 진행 중", "수정 요청", "검수 요청(개발자 전용)", "작업 중(개발자 전용)", "기타"]
+    const ordered = ["테스트 진행 중", "완료", "수정 요청", "검수 요청(개발자 전용)", "작업 중(개발자 전용)", "기타"]
       .filter((key) => counts[key]);
 
     const total = rows.length || 1;

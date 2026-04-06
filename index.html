@@ -738,16 +738,17 @@
       <div class="panel">
         <div class="section-kicker">Priority Risk</div>
         <h2 class="section-title">중요도별 리스크</h2>
-        <div class="section-sub">높음/중간/낮음 기준 전체 건수와 수정 요청 비중을 함께 보여줍니다.</div>
+        <div class="section-sub">높음/중간/낮음 기준 검수 진행 상태와 수정 요청, 최종 완료비율을 함께 보여줍니다.</div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>중요도</th>
                 <th>전체</th>
+                <th>기획검수</th>
+                <th>개발검수</th>
                 <th>수정 요청</th>
-                <th>수정 비율</th>
-                <th>기획 PASS</th>
+                <th>완료비율</th>
               </tr>
             </thead>
             <tbody id="priorityTableBody"></tbody>
@@ -1128,15 +1129,18 @@
     tbody.innerHTML = order.map((priority) => {
       const items = rows.filter((row) => row.normalizedPriority === priority);
       if (!items.length) return "";
+      const planningPassCount = items.filter((row) => row.planningPass).length;
+      const devPassCount = items.filter((row) => row.devPass).length;
       const fixCount = items.filter((row) => row.normalizedStatus === "수정 요청").length;
-      const passCount = items.filter((row) => row.planningPass).length;
+      const completedCount = items.filter((row) => row.planningPass && row.devPass).length;
       return `
         <tr>
           <td>${renderPriorityPill(priority)}</td>
           <td class="mono">${items.length}</td>
+          <td class="mono">${planningPassCount}</td>
+          <td class="mono">${devPassCount}</td>
           <td class="mono">${fixCount}</td>
-          <td class="mono">${toPct(fixCount, items.length)}</td>
-          <td class="mono">${passCount}</td>
+          <td class="mono">${toPct(completedCount, items.length)}</td>
         </tr>
       `;
     }).join("");

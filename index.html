@@ -862,6 +862,7 @@
     "수정 요청": "#f87171",
     "테스트 진행 중": "#22d3ee",
     "완료": "#34d399",
+    "보류 - 차후구현": "#94a3b8",
     "검수 요청(개발자 전용)": "#a78bfa",
     "작업 중(개발자 전용)": "#fbbf24",
     "기타": "#64748b"
@@ -963,12 +964,21 @@
     const compact = raw.replace(/\s+/g, "");
 
     if (!raw) return "기타";
+    if (raw.includes("보류") || compact.includes("보류") || compact.includes("차후구현")) return "보류 - 차후구현";
     if (raw.includes("완료") || compact.includes("완료")) return "완료";
     if (raw.includes("수정 요청") || compact.includes("수정요청")) return "수정 요청";
     if (raw.includes("검수 요청") || compact.includes("검수요청")) return "검수 요청(개발자 전용)";
     if (raw.includes("작업 중") || compact.includes("작업중")) return "작업 중(개발자 전용)";
     if (raw.includes("테스트") || compact.includes("테스트") || compact.includes("테스")) return "테스트 진행 중";
     return "기타";
+  }
+
+  function isDeferredRow(row) {
+    return row.normalizedStatus === "보류 - 차후구현";
+  }
+
+  function getActiveRows(rows) {
+    return rows.filter((row) => !isDeferredRow(row));
   }
 
   function normalizePriority(priority) {
@@ -1053,9 +1063,10 @@
   }
 
   function renderHeaderStats(rows) {
+    const activeRows = getActiveRows(rows);
     const fixCount = rows.filter((row) => row.normalizedStatus === "수정 요청").length;
-    const planningPassCount = rows.filter((row) => row.planningPass).length;
-    const devPassCount = rows.filter((row) => row.devPass).length;
+    const planningPassCount = activeRows.filter((row) => row.planningPass).length;
+    const devPassCount = activeRows.filter((row) => row.devPass).length;
 
     document.getElementById("rowCount").textContent = String(rows.length);
     document.getElementById("responseState").textContent = "OK";
@@ -1067,13 +1078,15 @@
 
   function renderKpis(rows) {
     const total = rows.length;
+    const activeRows = getActiveRows(rows);
+    const activeTotal = activeRows.length;
     const testCount = rows.filter((row) => row.normalizedStatus === "테스트 진행 중").length;
-    const devReviewCount = rows.filter((row) => row.normalizedStatus === "검수 요청(개발자 전용)").length;
-    const planningPassCount = rows.filter((row) => row.planningPass).length;
-    const devPassCount = rows.filter((row) => row.devPass).length;
-    const planningPassPct = toPct(planningPassCount, total);
+    const devReviewCount = activeRows.filter((row) => row.normalizedStatus === "검수 요청(개발자 전용)").length;
+    const planningPassCount = activeRows.filter((row) => row.planningPass).length;
+    const devPassCount = activeRows.filter((row) => row.devPass).length;
+    const planningPassPct = toPct(planningPassCount, activeTotal);
     const effectiveDevCount = devPassCount || devReviewCount;
-    const effectiveDevPct = devPassCount ? toPct(devPassCount, total) : toPct(devReviewCount, total);
+    const effectiveDevPct = devPassCount ? toPct(devPassCount, activeTotal) : toPct(devReviewCount, activeTotal);
 
     const kpis = [
       { label: "전체 TC", value: renderKpiValue(total), desc: "현재 QA_TC 탭 기준 전체 테스트 케이스", accent: "#60a5fa" },
@@ -1107,7 +1120,7 @@
       return acc;
     }, {});
 
-    const ordered = ["테스트 진행 중", "완료", "수정 요청", "검수 요청(개발자 전용)", "작업 중(개발자 전용)", "기타"]
+    const ordered = ["테스트 진행 중", "완료", "보류 - 차후구현", "수정 요청", "검수 요청(개발자 전용)", "작업 중(개발자 전용)", "기타"]
       .filter((key) => counts[key]);
 
     const total = rows.length || 1;
@@ -1125,10 +1138,11 @@
   }
 
   function renderReviewProgress(rows) {
-    const total = rows.length;
-    const planningPassCount = rows.filter((row) => row.planningPass).length;
-    const devPassCount = rows.filter((row) => row.devPass).length;
-    const fixCount = rows.filter((row) => row.normalizedStatus === "수정 요청").length;
+    const activeRows = getActiveRows(rows);
+    const total = activeRows.length;
+    const planningPassCount = activeRows.filter((row) => row.planningPass).length;
+    const devPassCount = activeRows.filter((row) => row.devPass).length;
+    const fixCount = activeRows.filter((row) => row.normalizedStatus === "수정 요청").length;
 
     const metrics = [
       { name: "기획 검수", value: planningPassCount, total, color: "linear-gradient(90deg, #34d399, #5eead4)" },
@@ -1154,10 +1168,11 @@
     tbody.innerHTML = order.map((priority) => {
       const items = rows.filter((row) => row.normalizedPriority === priority);
       if (!items.length) return "";
-      const planningPassCount = items.filter((row) => row.planningPass).length;
-      const devPassCount = items.filter((row) => row.devPass).length;
-      const fixCount = items.filter((row) => row.normalizedStatus === "수정 요청").length;
-      const completedCount = items.filter((row) => row.planningPass && row.devPass).length;
+      const activeItems = getActiveRows(items);
+      const planningPassCount = activeItems.filter((row) => row.planningPass).length;
+      const devPassCount = activeItems.filter((row) => row.devPass).length;
+      const fixCount = activeItems.filter((row) => row.normalizedStatus === "수정 요청").length;
+      const completedCount = activeItems.filter((row) => row.planningPass && row.devPass).length;
       return `
         <tr>
           <td>${renderPriorityPill(priority)}</td>
@@ -1165,7 +1180,7 @@
           <td class="mono">${planningPassCount}</td>
           <td class="mono">${devPassCount}</td>
           <td class="mono">${fixCount}</td>
-          <td class="mono">${toPct(completedCount, items.length)}</td>
+          <td class="mono">${toPct(completedCount, activeItems.length)}</td>
         </tr>
       `;
     }).join("");
@@ -1206,13 +1221,14 @@
     rows.forEach((row) => {
       const key = String(row["화면"] || "화면 미입력").trim() || "화면 미입력";
       if (!grouped.has(key)) {
-        grouped.set(key, { screen: key, total: 0, inProgress: 0, fix: 0, planningPass: 0 });
+        grouped.set(key, { screen: key, total: 0, activeTotal: 0, inProgress: 0, fix: 0, planningPass: 0 });
       }
       const item = grouped.get(key);
       item.total += 1;
+      if (!isDeferredRow(row)) item.activeTotal += 1;
       if (row.normalizedStatus === "테스트 진행 중" || row.normalizedStatus === "작업 중(개발자 전용)") item.inProgress += 1;
       if (row.normalizedStatus === "수정 요청") item.fix += 1;
-      if (row.planningPass) item.planningPass += 1;
+      if (!isDeferredRow(row) && row.planningPass) item.planningPass += 1;
     });
 
     const topScreens = Array.from(grouped.values())
@@ -1229,9 +1245,9 @@
         <td>
           <div class="metric-row" style="grid-template-columns:1fr 54px; gap:10px;">
             <div class="metric-bar">
-              <div class="metric-fill" style="width:${(item.planningPass / item.total) * 100}%; background:linear-gradient(90deg, #34d399, #22d3ee)"></div>
+              <div class="metric-fill" style="width:${item.activeTotal ? (item.planningPass / item.activeTotal) * 100 : 0}%; background:linear-gradient(90deg, #34d399, #22d3ee)"></div>
             </div>
-            <div class="pct mono">${toPct(item.planningPass, item.total)}</div>
+            <div class="pct mono">${toPct(item.planningPass, item.activeTotal)}</div>
           </div>
         </td>
       </tr>

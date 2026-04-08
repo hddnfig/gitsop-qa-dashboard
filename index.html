@@ -815,8 +815,17 @@
       <div class="panel">
         <div class="toolbar">
           <input id="searchInput" class="control" type="search" placeholder="TC-ID, 테스트 시나리오명, 화면, 기능 검색">
+          <select id="priorityFilter" class="control">
+            <option value="">전체 중요도</option>
+          </select>
           <select id="statusFilter" class="control">
             <option value="">전체 상태</option>
+          </select>
+          <select id="planningFilter" class="control">
+            <option value="">전체 기획검수</option>
+          </select>
+          <select id="devFilter" class="control">
+            <option value="">전체 개발검수</option>
           </select>
           <select id="screenFilter" class="control">
             <option value="">전체 화면</option>
@@ -1287,7 +1296,10 @@
 
   function bindFilters() {
     document.getElementById("searchInput").addEventListener("input", () => renderDetailTable(getMappedRows()));
+    document.getElementById("priorityFilter").addEventListener("change", () => renderDetailTable(getMappedRows()));
     document.getElementById("statusFilter").addEventListener("change", () => renderDetailTable(getMappedRows()));
+    document.getElementById("planningFilter").addEventListener("change", () => renderDetailTable(getMappedRows()));
+    document.getElementById("devFilter").addEventListener("change", () => renderDetailTable(getMappedRows()));
     document.getElementById("screenFilter").addEventListener("change", () => renderDetailTable(getMappedRows()));
   }
 
@@ -1302,7 +1314,10 @@
   }
 
   function populateFilterOptions(rows) {
+    syncSelect("priorityFilter", [...new Set(rows.map((row) => row.normalizedPriority))].sort((a, b) => priorityScore(b) - priorityScore(a)), "전체 중요도");
     syncSelect("statusFilter", [...new Set(rows.map((row) => row.normalizedStatus))].sort(), "전체 상태");
+    syncSelect("planningFilter", ["PASS", "대기"], "전체 기획검수");
+    syncSelect("devFilter", ["PASS", "대기"], "전체 개발검수");
     syncSelect("screenFilter", [...new Set(rows.map((row) => row["화면"] || "화면 미입력"))].sort((a, b) => String(a).localeCompare(String(b), "ko")), "전체 화면");
   }
 
@@ -1317,7 +1332,10 @@
 
   function renderDetailTable(rows) {
     const q = document.getElementById("searchInput").value.trim().toLowerCase();
+    const priorityFilter = document.getElementById("priorityFilter").value;
     const statusFilter = document.getElementById("statusFilter").value;
+    const planningFilter = document.getElementById("planningFilter").value;
+    const devFilter = document.getElementById("devFilter").value;
     const screenFilter = document.getElementById("screenFilter").value;
 
     const filtered = rows.filter((row) => {
@@ -1329,7 +1347,10 @@
       ].join(" ").toLowerCase();
 
       if (q && !haystack.includes(q)) return false;
+      if (priorityFilter && row.normalizedPriority !== priorityFilter) return false;
       if (statusFilter && row.normalizedStatus !== statusFilter) return false;
+      if (planningFilter && (row.planningPass ? "PASS" : "대기") !== planningFilter) return false;
+      if (devFilter && (row.devPass ? "PASS" : "대기") !== devFilter) return false;
       if (screenFilter && (row["화면"] || "화면 미입력") !== screenFilter) return false;
       return true;
     }).slice(0, 80);

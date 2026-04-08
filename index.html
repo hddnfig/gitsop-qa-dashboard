@@ -727,15 +727,6 @@
       </div>
 
       <div class="panel">
-        <div class="section-kicker">Review Progress</div>
-        <h2 class="section-title">검수 진행률</h2>
-        <div class="section-sub">기획 검수와 개발 검수 체크박스 기준 달성률입니다.</div>
-        <div class="metric-list" id="reviewMetrics"></div>
-      </div>
-    </section>
-
-    <section class="section two-col">
-      <div class="panel">
         <div class="section-kicker">Priority Risk</div>
         <h2 class="section-title">중요도별 리스크</h2>
         <div class="section-sub">높음/중간/낮음 기준 검수 진행 상태와 수정 요청, 최종 완료비율을 함께 보여줍니다.</div>
@@ -754,6 +745,15 @@
             <tbody id="priorityTableBody"></tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <section class="section two-col">
+      <div class="panel">
+        <div class="section-kicker">Review Progress</div>
+        <h2 class="section-title">검수 진행률</h2>
+        <div class="section-sub">기획 검수와 개발 검수 체크박스 기준 달성률입니다.</div>
+        <div class="metric-list" id="reviewMetrics"></div>
       </div>
 
       <div class="panel">
@@ -1015,14 +1015,14 @@
       },
       {
         label: "메이저 이슈",
-        value: metrics.major,
-        desc: "Major 표기 기준 핵심 검수 항목",
+        value: `${metrics.majorComplete} / ${metrics.major} (${majorCompletePct})`,
+        desc: "Major 표기 기준 핵심 검수 항목 및 완료율",
         accent: "#f59e0b"
       },
       {
         label: "완료",
         value: metrics.complete,
-        desc: `${completePct} · 메이저 ${metrics.majorComplete}건 완료 (${majorCompletePct})`,
+        desc: `${completePct} · 전체 디자인 이슈 기준 완료 건수`,
         accent: "#34d399"
       }
     ];

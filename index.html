@@ -319,6 +319,15 @@
     font-weight: 800;
   }
 
+  .kpi-value .value-sub {
+    margin-left: 8px;
+    font-size: 0.42em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #8fa6c8;
+    vertical-align: middle;
+  }
+
   .kpi-desc {
     margin-top: 10px;
     color: #cad8ef;
@@ -358,6 +367,10 @@
   .kpi.compact .kpi-value {
     margin-top: 12px;
     font-size: clamp(24px, 2vw, 32px);
+  }
+
+  .kpi.compact .kpi-value .value-sub {
+    font-size: 0.48em;
   }
 
   .kpi.compact .kpi-desc {
@@ -1009,20 +1022,20 @@
     const cards = [
       {
         label: "전체 디자인 이슈",
-        value: metrics.total,
+        value: renderKpiValue(metrics.total),
         desc: "Figma 코멘트 시트 기준 전체 디자인 이슈",
         accent: "#60a5fa"
       },
       {
         label: "메이저 이슈",
-        value: `${metrics.majorComplete} / ${metrics.major} (${majorCompletePct})`,
+        value: renderFractionValue(metrics.majorComplete, metrics.major, majorCompletePct),
         desc: "Major 표기 기준 핵심 검수 항목 및 완료율",
         accent: "#f59e0b"
       },
       {
         label: "완료",
-        value: metrics.complete,
-        desc: `${completePct} · 전체 디자인 이슈 기준 완료 건수`,
+        value: renderKpiValue(metrics.complete, completePct),
+        desc: "전체 디자인 이슈 기준 완료 건수",
         accent: "#34d399"
       }
     ];
@@ -1054,17 +1067,19 @@
 
   function renderKpis(rows) {
     const total = rows.length;
-    const fixCount = rows.filter((row) => row.normalizedStatus === "수정 요청").length;
     const testCount = rows.filter((row) => row.normalizedStatus === "테스트 진행 중").length;
     const devReviewCount = rows.filter((row) => row.normalizedStatus === "검수 요청(개발자 전용)").length;
     const planningPassCount = rows.filter((row) => row.planningPass).length;
     const devPassCount = rows.filter((row) => row.devPass).length;
+    const planningPassPct = toPct(planningPassCount, total);
+    const effectiveDevCount = devPassCount || devReviewCount;
+    const effectiveDevPct = devPassCount ? toPct(devPassCount, total) : toPct(devReviewCount, total);
 
     const kpis = [
-      { label: "전체 TC", value: total, desc: "현재 QA_TC 탭 기준 전체 테스트 케이스", accent: "#60a5fa" },
-      { label: "테스트 진행 중", value: testCount, desc: `${toPct(testCount, total)} · 현재 테스트 수행 단계`, accent: "#22d3ee" },
-      { label: "기획 검수 PASS", value: planningPassCount, desc: `${toPct(planningPassCount, total)} · 기획 기준 확인 완료`, accent: "#34d399" },
-      { label: "개발 검수 PASS", value: devPassCount || devReviewCount, desc: devPassCount ? `${toPct(devPassCount, total)} · 개발 검수 완료` : `${toPct(devReviewCount, total)} · 개발자 검수 요청 상태`, accent: "#a78bfa" }
+      { label: "전체 TC", value: renderKpiValue(total), desc: "현재 QA_TC 탭 기준 전체 테스트 케이스", accent: "#60a5fa" },
+      { label: "테스트 진행 중", value: renderKpiValue(testCount), desc: "현재 테스트 수행 단계", accent: "#22d3ee" },
+      { label: "기획 검수 PASS", value: renderKpiValue(planningPassCount, planningPassPct), desc: "기획 기준 확인 완료", accent: "#34d399" },
+      { label: "개발 검수 PASS", value: renderKpiValue(effectiveDevCount, effectiveDevPct), desc: devPassCount ? "개발 검수 완료" : "개발자 검수 요청 상태", accent: "#a78bfa" }
     ];
 
     document.getElementById("kpiGrid").innerHTML = kpis.map((kpi) => `
@@ -1074,6 +1089,16 @@
         <div class="kpi-desc">${escapeHtml(kpi.desc)}</div>
       </article>
     `).join("");
+  }
+
+  function renderKpiValue(value, pct) {
+    const safeValue = escapeHtml(String(value ?? "-"));
+    if (!pct) return safeValue;
+    return `${safeValue}<span class="value-sub">${escapeHtml(`(${pct})`)}</span>`;
+  }
+
+  function renderFractionValue(done, total, pct) {
+    return `${escapeHtml(String(done))} / ${escapeHtml(String(total))}<span class="value-sub">${escapeHtml(`(${pct})`)}</span>`;
   }
 
   function renderStatusMix(rows) {

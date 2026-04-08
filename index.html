@@ -474,6 +474,12 @@
     font-weight: 700;
   }
 
+  .metric-divider {
+    height: 1px;
+    margin: 2px 0;
+    background: rgba(255,255,255,0.08);
+  }
+
   .table-wrap {
     overflow: auto;
     border-radius: 18px;
@@ -1184,23 +1190,30 @@
     const total = activeRows.length;
     const planningPassCount = activeRows.filter((row) => row.planningPass).length;
     const devPassCount = activeRows.filter((row) => row.devPass).length;
-    const fixCount = activeRows.filter((row) => row.normalizedStatus === "수정 요청").length;
+    const designTotal = state.designMetrics?.completionBase || state.designMetrics?.total || 0;
+    const designComplete = state.designMetrics?.complete || 0;
 
     const metrics = [
-      { name: "기획 검수", value: planningPassCount, total, color: "linear-gradient(90deg, #34d399, #5eead4)" },
-      { name: "개발 검수", value: devPassCount, total, color: "linear-gradient(90deg, #a78bfa, #60a5fa)" },
-      { name: "수정 요청", value: fixCount, total, color: "linear-gradient(90deg, #f59e0b, #f87171)" }
+      { name: "기획 검수", value: planningPassCount, total, pct: toPct(planningPassCount, total), color: "linear-gradient(90deg, #34d399, #5eead4)" },
+      { name: "개발 검수", value: devPassCount, total, pct: toPct(devPassCount, total), color: "linear-gradient(90deg, #a78bfa, #60a5fa)" },
+      { divider: true },
+      { name: "디자인 검수", value: designComplete, total: designTotal, pct: toPct(designComplete, designTotal), color: "linear-gradient(90deg, #f59e0b, #fbbf24)" }
     ];
 
-    document.getElementById("reviewMetrics").innerHTML = metrics.map((metric) => `
+    document.getElementById("reviewMetrics").innerHTML = metrics.map((metric) => {
+      if (metric.divider) {
+        return '<div class="metric-divider"></div>';
+      }
+      return `
       <div class="metric-row">
         <div class="name">${escapeHtml(metric.name)}</div>
         <div class="metric-bar">
-          <div class="metric-fill" style="width:${total ? (metric.value / total) * 100 : 0}%; background:${metric.color}"></div>
+          <div class="metric-fill" style="width:${metric.total ? (metric.value / metric.total) * 100 : 0}%; background:${metric.color}"></div>
         </div>
-        <div class="pct mono">${metric.value}</div>
+        <div class="pct mono">${metric.pct}</div>
       </div>
-    `).join("");
+    `;
+    }).join("");
   }
 
   function renderPriorityTable(rows) {

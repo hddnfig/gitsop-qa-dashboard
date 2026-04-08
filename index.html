@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=SUIT:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/charts/loader.js"></script>
 <style>
   :root {
     --bg: #09111f;
@@ -852,11 +851,11 @@
 
 <script>
   const SHEET_ID = "1BDM-I4pMjAvY1D62vdLvf_z6q3WgkcfooHDBAqPNNzk";
-  const SHEET_NAME = "QA_TC";
-  const DESIGN_SHEET_NAME = "디자인검수-Figma코멘트";
+  const QA_SHEET_GID = "148747297";
+  const DESIGN_SHEET_GID = "1351380601";
   const REFRESH_MS = 60000;
-  const QUERY_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}`;
-  const DESIGN_QUERY_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DESIGN_SHEET_NAME)}`;
+  const QA_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${QA_SHEET_GID}`;
+  const DESIGN_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${DESIGN_SHEET_GID}`;
 
   const COLORS = {
     "수정 요청": "#f87171",
@@ -875,64 +874,96 @@
     countdown: Math.floor(REFRESH_MS / 1000)
   };
 
-  google.charts.load("current");
-  google.charts.setOnLoadCallback(() => {
-    bindFilters();
-    fetchSheetData();
-    setInterval(fetchSheetData, REFRESH_MS);
-    setInterval(updateCountdown, 1000);
-  });
+  bindFilters();
+  fetchSheetData();
+  setInterval(fetchSheetData, REFRESH_MS);
+  setInterval(updateCountdown, 1000);
 
-  function fetchSheetData() {
+  async function fetchSheetData() {
     setLiveState("SYNC", "동기화 중", "구글시트에서 최신 데이터를 불러오는 중입니다.");
 
-    const query = new google.visualization.Query(QUERY_URL);
-    query.send(async (response) => {
-      if (response.isError()) {
-        renderError(response.getMessage() || "Google Sheets 응답 오류");
-        return;
-      }
-
-      try {
-        const rows = dataTableToRows(response.getDataTable()).filter((row) => row["TC-ID"]);
-        const designMetrics = await fetchDesignMetrics();
-        state.rows = rows;
-        state.designMetrics = designMetrics;
-        state.lastUpdated = new Date();
-        state.countdown = Math.floor(REFRESH_MS / 1000);
-        renderDashboard(rows);
-        setLiveState("OK", "연결 정상", `마지막 동기화 완료. ${rows.length}건 기준으로 집계했습니다.`);
-      } catch (error) {
-        renderError(error.message || "데이터 파싱 실패");
-      }
-    });
+    try {
+      const [rows, designRows] = await Promise.all([
+        fetchCsvRows(QA_CSV_URL),
+        fetchCsvRows(DESIGN_CSV_URL)
+      ]);
+      const normalizedRows = rows.filter((row) => String(row["TC-ID"] || "").trim());
+      const designMetrics = computeDesignMetrics(designRows);
+      state.rows = normalizedRows;
+      state.designMetrics = designMetrics;
+      state.lastUpdated = new Date();
+      state.countdown = Math.floor(REFRESH_MS / 1000);
+      renderDashboard(normalizedRows);
+      setLiveState("OK", "연결 정상", `마지막 동기화 완료. ${normalizedRows.length}건 기준으로 집계했습니다.`);
+    } catch (error) {
+      renderError(error.message || "데이터 파싱 실패");
+    }
   }
 
-  function dataTableToRows(dataTable) {
-    const cols = Array.from({ length: dataTable.getNumberOfColumns() }, (_, i) => dataTable.getColumnLabel(i) || dataTable.getColumnId(i));
-    return Array.from({ length: dataTable.getNumberOfRows() }, (_, r) => {
-      const row = {};
-      cols.forEach((col, c) => {
-        row[col] = dataTable.getValue(r, c);
-      });
-      return row;
-    });
-  }
-
-  async function fetchDesignMetrics() {
-    const response = await fetch(DESIGN_QUERY_URL);
+  async function fetchCsvRows(url) {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Google Sheets CSV 응답 오류 (${response.status})`);
+    }
     const text = await response.text();
-    const match = text.match(/setResponse\((.*)\);?$/s);
-    if (!match) {
-      throw new Error("디자인검수 시트 파싱 실패");
+    const matrix = parseCsv(text);
+    if (!matrix.length) return [];
+    const [headers, ...dataRows] = matrix;
+    return dataRows
+      .filter((row) => row.some((cell) => String(cell || "").trim() !== ""))
+      .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])));
+  }
+
+  function parseCsv(text) {
+    const rows = [];
+    let row = [];
+    let cell = "";
+    let inQuotes = false;
+    const input = String(text || "").replace(/^\uFEFF/, "");
+
+    for (let i = 0; i < input.length; i += 1) {
+      const char = input[i];
+      const next = input[i + 1];
+
+      if (inQuotes) {
+        if (char === '"' && next === '"') {
+          cell += '"';
+          i += 1;
+        } else if (char === '"') {
+          inQuotes = false;
+        } else {
+          cell += char;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ",") {
+        row.push(cell);
+        cell = "";
+      } else if (char === "\n") {
+        row.push(cell);
+        rows.push(row);
+        row = [];
+        cell = "";
+      } else if (char === "\r") {
+        continue;
+      } else {
+        cell += char;
+      }
     }
 
-    const payload = JSON.parse(match[1]);
-    const cols = payload.table.cols.map((col) => col.label || col.id);
-    const rows = payload.table.rows
-      .map((row) => Object.fromEntries(cols.map((col, index) => [col, row.c[index]?.v ?? null])))
-      .filter((row) => Object.values(row).some((value) => value !== null && String(value).trim() !== ""));
+    if (cell !== "" || row.length) {
+      row.push(cell);
+      rows.push(row);
+    }
 
+    return rows;
+  }
+
+  function computeDesignMetrics(rows) {
+    const cols = rows.length ? Object.keys(rows[0]) : [];
     const statusKey = cols.includes("상태") ? "상태" : "G";
     const dataRows = rows.filter((row) => {
       const status = String(row[statusKey] || "").trim();

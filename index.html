@@ -974,7 +974,11 @@
   function computeDesignMetrics(rows) {
     const cols = rows.length ? Object.keys(rows[0]) : [];
     const statusKey = cols.includes("상태") ? "상태" : "G";
-    const dataRows = rows.filter((row) => {
+    const priorityViewRows = rows.filter((row) => {
+      const content = String(row["내용"] || "");
+      return /🔴|🟠/.test(content);
+    });
+    const dataRows = priorityViewRows.filter((row) => {
       const status = String(row[statusKey] || "").trim();
       return status && status !== "상태";
     });

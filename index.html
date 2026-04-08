@@ -974,22 +974,19 @@
   function computeDesignMetrics(rows) {
     const cols = rows.length ? Object.keys(rows[0]) : [];
     const statusKey = cols.includes("상태") ? "상태" : "G";
-    const priorityViewRows = rows.filter((row) => {
-      const content = String(row["내용"] || "");
-      return /🔴|🟠/.test(content);
-    });
-    const dataRows = priorityViewRows.filter((row) => {
+    const dataRows = rows.filter((row) => {
       const status = String(row[statusKey] || "").trim();
       return status && status !== "상태";
     });
 
-    const majorRows = dataRows.filter((row) => {
-      const blob = cols
-        .filter((col) => col !== statusKey)
-        .map((col) => String(row[col] || ""))
-        .join("\n")
-        .toLowerCase();
-      return blob.includes("major") || blob.includes("메이저");
+    const rowBlob = (row) => cols
+      .map((col) => String(row[col] || ""))
+      .join("\n");
+
+    const majorRows = dataRows.filter((row) => rowBlob(row).toLowerCase().includes("major"));
+    const excludedRows = dataRows.filter((row) => {
+      const status = String(row[statusKey] || "").trim();
+      return status === "No" && !/🔴|🟠/.test(rowBlob(row));
     });
 
     const complete = dataRows.filter((row) => String(row[statusKey] || "").trim() === "Yes").length;
@@ -997,6 +994,7 @@
 
     return {
       total: dataRows.length,
+      completionBase: dataRows.length - excludedRows.length,
       major: majorRows.length,
       complete,
       majorComplete
@@ -1071,7 +1069,7 @@
       return;
     }
 
-    const completePct = toPct(metrics.complete, metrics.total);
+    const completePct = toPct(metrics.complete, metrics.completionBase || metrics.total);
     const majorCompletePct = toPct(metrics.majorComplete, metrics.major || 1);
     const cards = [
       {

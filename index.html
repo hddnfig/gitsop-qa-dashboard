@@ -877,13 +877,11 @@
   const DESIGN_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${DESIGN_SHEET_GID}`;
 
   const COLORS = {
-    "수정 요청": "#f87171",
+    "수정작업 진행중": "#f59e0b",
     "테스트 진행 중": "#22d3ee",
     "완료": "#34d399",
     "완료 Known-Issue": "#10b981",
     "보류 - 차후구현": "#94a3b8",
-    "검수 요청(개발자 전용)": "#a78bfa",
-    "작업 중(개발자 전용)": "#fbbf24",
     "기타": "#64748b"
   };
 
@@ -1020,11 +1018,41 @@
     if (raw.includes("보류") || compact.includes("보류") || compact.includes("차후구현")) return "보류 - 차후구현";
     if ((raw.includes("완료") || compact.includes("완료")) && (raw.toLowerCase().includes("known-issue") || compact.toLowerCase().includes("known-issue") || compact.toLowerCase().includes("knownissue"))) return "완료 Known-Issue";
     if (raw.includes("완료") || compact.includes("완료")) return "완료";
-    if (raw.includes("수정 요청") || compact.includes("수정요청")) return "수정 요청";
-    if (raw.includes("검수 요청") || compact.includes("검수요청")) return "검수 요청(개발자 전용)";
-    if (raw.includes("작업 중") || compact.includes("작업중")) return "작업 중(개발자 전용)";
+    if (raw.includes("수정 요청") || compact.includes("수정요청")) return "수정작업 진행중";
+    if (raw.includes("검수 요청") || compact.includes("검수요청")) return "수정작업 진행중";
+    if (raw.includes("작업 중") || compact.includes("작업중")) return "수정작업 진행중";
     if (raw.includes("테스트") || compact.includes("테스트") || compact.includes("테스")) return "테스트 진행 중";
     return "기타";
+  }
+
+  function getRawStatusText(row) {
+    return String(row["상태"] || "").replace(/\s+/g, " ").trim();
+  }
+
+  function getRawCompactStatus(row) {
+    return getRawStatusText(row).replace(/\s+/g, "");
+  }
+
+  function isFixRequest(row) {
+    const raw = getRawStatusText(row);
+    const compact = getRawCompactStatus(row);
+    return raw.includes("수정 요청") || compact.includes("수정요청");
+  }
+
+  function isDevReviewRequest(row) {
+    const raw = getRawStatusText(row);
+    const compact = getRawCompactStatus(row);
+    return raw.includes("검수 요청") || compact.includes("검수요청");
+  }
+
+  function isWorkInProgress(row) {
+    const raw = getRawStatusText(row);
+    const compact = getRawCompactStatus(row);
+    return raw.includes("작업 중") || compact.includes("작업중");
+  }
+
+  function isReworkInProgress(row) {
+    return isFixRequest(row) || isDevReviewRequest(row) || isWorkInProgress(row);
   }
 
   function isDeferredRow(row) {
@@ -1118,7 +1146,7 @@
 
   function renderHeaderStats(rows) {
     const activeRows = getActiveRows(rows);
-    const fixCount = rows.filter((row) => row.normalizedStatus === "수정 요청").length;
+    const fixCount = rows.filter((row) => isReworkInProgress(row)).length;
     const planningPassCount = activeRows.filter((row) => row.planningPass).length;
     const devPassCount = activeRows.filter((row) => row.devPass).length;
 
@@ -1126,7 +1154,7 @@
     document.getElementById("responseState").textContent = "OK";
     document.getElementById("lastSyncAt").textContent = formatTime(state.lastUpdated);
 
-    const info = `수정 요청 ${fixCount}건 · 기획 PASS ${planningPassCount}건 · 개발 PASS ${devPassCount}건`;
+    const info = `수정작업 진행중 ${fixCount}건 · 기획 PASS ${planningPassCount}건 · 개발 PASS ${devPassCount}건`;
     document.getElementById("syncMessage").textContent = info;
   }
 
@@ -1135,7 +1163,7 @@
     const activeRows = getActiveRows(rows);
     const activeTotal = activeRows.length;
     const testCount = rows.filter((row) => row.normalizedStatus === "테스트 진행 중").length;
-    const devReviewCount = activeRows.filter((row) => row.normalizedStatus === "검수 요청(개발자 전용)").length;
+    const devReviewCount = activeRows.filter((row) => isDevReviewRequest(row)).length;
     const planningPassCount = activeRows.filter((row) => row.planningPass).length;
     const devPassCount = activeRows.filter((row) => row.devPass).length;
     const planningPassPct = toPct(planningPassCount, activeTotal);
@@ -1178,7 +1206,7 @@
       return acc;
     }, {});
 
-    const ordered = ["완료", "테스트 진행 중", "완료 Known-Issue", "보류 - 차후구현", "수정 요청", "검수 요청(개발자 전용)", "작업 중(개발자 전용)"]
+    const ordered = ["완료", "테스트 진행 중", "완료 Known-Issue", "보류 - 차후구현", "수정작업 진행중"]
       .filter((key) => counts[key]);
 
     const total = rows.length || 1;
@@ -1236,7 +1264,7 @@
       const activeItems = getActiveRows(items);
       const planningPassCount = activeItems.filter((row) => row.planningPass).length;
       const devPassCount = activeItems.filter((row) => row.devPass).length;
-      const fixCount = activeItems.filter((row) => row.normalizedStatus === "수정 요청").length;
+      const fixCount = activeItems.filter((row) => isFixRequest(row)).length;
       const completedCount = activeItems.filter((row) => row.planningPass && row.devPass).length;
       return `
         <tr>
@@ -1253,7 +1281,7 @@
 
   function renderIssues(rows) {
     const issues = rows
-      .filter((row) => row.normalizedStatus === "수정 요청")
+      .filter((row) => isFixRequest(row))
       .sort((a, b) => priorityScore(b.normalizedPriority) - priorityScore(a.normalizedPriority) || String(a["TC-ID"]).localeCompare(String(b["TC-ID"])))
       .slice(0, 8);
 
@@ -1291,8 +1319,8 @@
       const item = grouped.get(key);
       item.total += 1;
       if (!isDeferredRow(row)) item.activeTotal += 1;
-      if (row.normalizedStatus === "테스트 진행 중" || row.normalizedStatus === "작업 중(개발자 전용)") item.inProgress += 1;
-      if (row.normalizedStatus === "수정 요청") item.fix += 1;
+      if (row.normalizedStatus === "테스트 진행 중" || isWorkInProgress(row)) item.inProgress += 1;
+      if (isFixRequest(row)) item.fix += 1;
       if (!isDeferredRow(row) && row.planningPass) item.planningPass += 1;
     });
 

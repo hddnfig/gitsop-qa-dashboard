@@ -1084,8 +1084,8 @@
     const cards = [
       {
         label: "전체 디자인 이슈",
-        value: renderKpiValue(metrics.total),
-        desc: "Figma 코멘트 시트 기준 전체 디자인 이슈",
+        value: renderFractionValue(metrics.total, metrics.completionBase || metrics.total),
+        desc: "Figma 코멘트 시트 기준 전체 디자인 이슈 / 4.10 타겟 항목",
         accent: "#60a5fa"
       },
       {

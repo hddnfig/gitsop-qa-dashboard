@@ -880,6 +880,7 @@
     "수정 요청": "#f87171",
     "테스트 진행 중": "#22d3ee",
     "완료": "#34d399",
+    "완료 Known-Issue": "#10b981",
     "보류 - 차후구현": "#94a3b8",
     "검수 요청(개발자 전용)": "#a78bfa",
     "작업 중(개발자 전용)": "#fbbf24",
@@ -1017,6 +1018,7 @@
 
     if (!raw) return "기타";
     if (raw.includes("보류") || compact.includes("보류") || compact.includes("차후구현")) return "보류 - 차후구현";
+    if ((raw.includes("완료") || compact.includes("완료")) && (raw.toLowerCase().includes("known-issue") || compact.toLowerCase().includes("known-issue") || compact.toLowerCase().includes("knownissue"))) return "완료 Known-Issue";
     if (raw.includes("완료") || compact.includes("완료")) return "완료";
     if (raw.includes("수정 요청") || compact.includes("수정요청")) return "수정 요청";
     if (raw.includes("검수 요청") || compact.includes("검수요청")) return "검수 요청(개발자 전용)";
@@ -1176,7 +1178,7 @@
       return acc;
     }, {});
 
-    const ordered = ["테스트 진행 중", "완료", "보류 - 차후구현", "수정 요청", "검수 요청(개발자 전용)", "작업 중(개발자 전용)"]
+    const ordered = ["완료", "테스트 진행 중", "완료 Known-Issue", "보류 - 차후구현", "수정 요청", "검수 요청(개발자 전용)", "작업 중(개발자 전용)"]
       .filter((key) => counts[key]);
 
     const total = rows.length || 1;

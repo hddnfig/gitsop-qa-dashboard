@@ -1084,8 +1084,8 @@
     const cards = [
       {
         label: "전체 디자인 이슈",
-        value: renderFractionValue(metrics.total, metrics.completionBase || metrics.total),
-        desc: "Figma 코멘트 시트 기준 전체 디자인 이슈 / 4.10 타겟 항목",
+        value: renderLabeledPairValue(metrics.total, "total", metrics.completionBase || metrics.total, "4.10 타겟 항목"),
+        desc: "Figma 코멘트 시트 기준 전체 디자인 이슈",
         accent: "#60a5fa"
       },
       {
@@ -1164,6 +1164,10 @@
 
   function renderFractionValue(done, total, pct) {
     return `${escapeHtml(String(done))} / ${escapeHtml(String(total))}<span class="value-sub">${escapeHtml(`(${pct})`)}</span>`;
+  }
+
+  function renderLabeledPairValue(leftValue, leftLabel, rightValue, rightLabel) {
+    return `${escapeHtml(String(leftValue))}<span class="value-sub">${escapeHtml(leftLabel)}</span> / ${escapeHtml(String(rightValue))}<span class="value-sub">${escapeHtml(rightLabel)}</span>`;
   }
 
   function renderStatusMix(rows) {

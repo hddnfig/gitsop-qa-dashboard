@@ -993,17 +993,11 @@
       .join("\n");
 
     const majorRows = dataRows.filter((row) => rowBlob(row).toLowerCase().includes("major"));
-    const excludedRows = dataRows.filter((row) => {
-      const status = String(row[statusKey] || "").trim();
-      return status === "No" && !/🔴|🟠/.test(rowBlob(row));
-    });
-
     const complete = dataRows.filter((row) => String(row[statusKey] || "").trim() === "Yes").length;
     const majorComplete = majorRows.filter((row) => String(row[statusKey] || "").trim() === "Yes").length;
 
     return {
       total: dataRows.length,
-      completionBase: dataRows.length - excludedRows.length,
       major: majorRows.length,
       complete,
       majorComplete
@@ -1109,12 +1103,12 @@
       return;
     }
 
-    const completePct = toPct(metrics.complete, metrics.completionBase || metrics.total);
+    const completePct = toPct(metrics.complete, metrics.total);
     const majorCompletePct = toPct(metrics.majorComplete, metrics.major || 1);
     const cards = [
       {
         label: "전체 디자인 이슈",
-        value: renderLabeledPairValue(metrics.total, "total", metrics.completionBase || metrics.total, "4.10 타겟 항목"),
+        value: renderLabeledPairValue(metrics.complete, "해결", metrics.total, "전체"),
         desc: "Figma 코멘트 시트 기준 전체 디자인 이슈",
         accent: "#60a5fa"
       },
@@ -1127,7 +1121,7 @@
       {
         label: "완료",
         value: renderKpiValue(metrics.complete, completePct),
-        desc: "전체 디자인 이슈 기준 완료 건수 (4.10 타겟 항목 기준)",
+        desc: "전체 디자인 이슈 기준 완료 건수",
         accent: "#34d399"
       }
     ];
@@ -1228,7 +1222,7 @@
     const total = activeRows.length;
     const planningPassCount = activeRows.filter((row) => row.planningPass).length;
     const devPassCount = activeRows.filter((row) => row.devPass).length;
-    const designTotal = state.designMetrics?.completionBase || state.designMetrics?.total || 0;
+    const designTotal = state.designMetrics?.total || 0;
     const designComplete = state.designMetrics?.complete || 0;
 
     const metrics = [

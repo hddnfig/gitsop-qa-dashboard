@@ -927,9 +927,20 @@
     const matrix = parseCsv(text);
     if (!matrix.length) return [];
     const [headers, ...dataRows] = matrix;
+    const normalizedHeaders = dedupeHeaders(headers);
     return dataRows
       .filter((row) => row.some((cell) => String(cell || "").trim() !== ""))
-      .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])));
+      .map((row) => Object.fromEntries(normalizedHeaders.map((header, index) => [header, row[index] ?? ""])));
+  }
+
+  function dedupeHeaders(headers) {
+    const counts = new Map();
+    return headers.map((header, index) => {
+      const base = String(header || `column_${index + 1}`).trim() || `column_${index + 1}`;
+      const seen = (counts.get(base) || 0) + 1;
+      counts.set(base, seen);
+      return seen === 1 ? base : `${base}__${seen}`;
+    });
   }
 
   function parseCsv(text) {
@@ -1004,6 +1015,24 @@
     };
   }
 
+  function looksLikeStatus(value) {
+    const raw = String(value || "").replace(/\s+/g, " ").trim();
+    const compact = raw.replace(/\s+/g, "").toLowerCase();
+    if (!raw) return false;
+    return ["완료", "known-issue", "knownissue", "보류", "차후구현", "수정요청", "검수요청", "작업중", "테스트"].some((keyword) => compact.includes(keyword));
+  }
+
+  function getStatusValue(row) {
+    const candidates = [
+      row["상태"],
+      row["실제 결과__2"],
+      row["실제 결과"]
+    ];
+
+    const explicit = candidates.find((value) => looksLikeStatus(value));
+    return String(explicit || "").trim();
+  }
+
   function normalizeStatus(status) {
     const raw = String(status || "").replace(/\s+/g, " ").trim();
     const compact = raw.replace(/\s+/g, "");
@@ -1020,7 +1049,7 @@
   }
 
   function getRawStatusText(row) {
-    return String(row["상태"] || "").replace(/\s+/g, " ").trim();
+    return String(getStatusValue(row) || "").replace(/\s+/g, " ").trim();
   }
 
   function getRawCompactStatus(row) {
@@ -1077,7 +1106,7 @@
   function renderDashboard(rows) {
     const mapped = rows.map((row) => ({
       ...row,
-      normalizedStatus: normalizeStatus(row["상태"]),
+      normalizedStatus: normalizeStatus(getStatusValue(row)),
       normalizedPriority: normalizePriority(row["중요도"]),
       planningPass: isTrue(row["기획 검수"]),
       devPass: isTrue(row["개발 검수"])
@@ -1296,7 +1325,7 @@
         <div class="issue-meta">
           <span>${renderTag(issue["화면"] || "화면 미입력")}</span>
           <span>${renderTag(issue["기능"] || "기능 미입력")}</span>
-          <span>${renderTag(issue["상태"] || "상태 미입력")}</span>
+          <span>${renderTag(getRawStatusText(issue) || "상태 미입력")}</span>
         </div>
       </article>
     `).join("");
@@ -1353,7 +1382,7 @@
   function getMappedRows() {
     return state.rows.map((row) => ({
       ...row,
-      normalizedStatus: normalizeStatus(row["상태"]),
+      normalizedStatus: normalizeStatus(getStatusValue(row)),
       normalizedPriority: normalizePriority(row["중요도"]),
       planningPass: isTrue(row["기획 검수"]),
       devPass: isTrue(row["개발 검수"])
